@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <title>Linux Lore — System Internals & OS Images</title>
+  <meta name="description" content="Deep-dive articles on core Linux mechanics — /proc, sudo, the shell, zombie processes — plus curated OS image downloads.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <span class="back-link">🐧 Linux Lore</span>
+      <button id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="container home">
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-text">
+        <span class="eyebrow">~/system-internals</span>
+        <h1 class="hero-title">Linux <span class="gradient-word">Lore</span><span class="cursor" aria-hidden="true"></span></h1>
+        <p class="hero-sub">Deep dives into how the system actually works — the shell, the kernel, the filesystem, and everything in between.</p>
+      </div>
+      <div class="hero-terminal" aria-hidden="true">
+        <pre><code><span class="t-p">tux@lore</span><span class="t-m">:</span><span class="t-path">~</span><span class="t-m">$</span> <span class="t-cmd">uname -r</span>
+6.9.4-lore-1 SMP PREEMPT
+<span class="t-p">tux@lore</span><span class="t-m">:</span><span class="t-path">~</span><span class="t-m">$</span> <span class="t-cmd">ls <span class="t-flag">articles/</span></span>
+proc  sudo  bash  zombies
+<span class="t-p">tux@lore</span><span class="t-m">:</span><span class="t-path">~</span><span class="t-m">$</span> <span class="cursor"></span></code></pre>
+      </div>
+    </section>
+
+    <!-- Section 1: Architecture Articles -->
+    <section>
+      <div class="section-head">
+        <h2>Architecture Articles</h2>
+        <p>Select a deep-dive topic to explore core Linux mechanics under the hood:</p>
+      </div>
+
+      <div class="card-grid">
+        <a href="proc.html" class="card">
+          <div>
+            <h3>Why Does Linux Have <code>/proc</code>?</h3>
+            <p>Explore virtual filesystems, process inspection, and pseudo-files inside the Linux kernel.</p>
+          </div>
+          <span class="tag">Filesystem</span>
+        </a>
+
+        <a href="sudo.html" class="card">
+          <div>
+            <h3>How Does <code>sudo</code> Actually Work?</h3>
+            <p>Uncover privilege escalation, setuid permissions, root privileges, and system execution security.</p>
+          </div>
+          <span class="tag">Security</span>
+        </a>
+
+        <a href="everything-is-a-file.html" class="card">
+          <div>
+            <h3>Why Is Everything a "File" in Linux?</h3>
+            <p>Understand file descriptors, device abstractions, pipes, and Unix core design principles.</p>
+          </div>
+          <span class="tag">Architecture</span>
+        </a>
+
+        <a href="zombie-processes.html" class="card">
+          <div>
+            <h3>What Is a Zombie Process?</h3>
+            <p>Learn about process lifecycles, PID tables, exit status codes, and the <code>wait()</code> system call.</p>
+          </div>
+          <span class="tag">Kernel</span>
+        </a>
+
+        <a href="bash-command.html" class="card">
+          <div>
+            <h3>What Happens When You Type a Command into Bash?</h3>
+            <p>Step through parsing, environment variables, PATH lookup, fork/exec, and process execution.</p>
+          </div>
+          <span class="tag">Shell</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- Section 2: OS Image Downloads -->
+    <section>
+      <div class="section-head">
+        <h2>Popular OS Image Downloads</h2>
+        <p>Curated operating system images grouped by workload and hardware specialization:</p>
+      </div>
+
+      <div class="card-grid">
+        <div class="card">
+          <div>
+            <h3>⚡ Lightweight OSes</h3>
+            <p>Minimalist distributions engineered for old hardware, low RAM overhead, and embedded systems.</p>
+            <ul>
+              <li><a href="https://alpine-linux.org" target="_blank" rel="noopener">Alpine Linux</a> (Resource Minimalist)</li>
+              <li><a href="https://puppylinux-woof-ce.github.io/" target="_blank" rel="noopener">Puppy Linux</a> (Runs entirely in RAM)</li>
+              <li><a href="https://www.bodhilinux.com/" target="_blank" rel="noopener">Bodhi Linux</a> (Ultra-light Moksha Desktop)</li>
+            </ul>
+          </div>
+          <span class="tag">Minimalist</span>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>💾 DOS & Retro OSes</h3>
+            <p>Legacy environment builds for classic software execution, bare-metal hardware testing, and retro computing.</p>
+            <ul>
+              <li><a href="https://www.freedos.org/" target="_blank" rel="noopener">FreeDOS</a> (Open-source 100% MS-DOS compatible)</li>
+              <li><a href="https://www.kolibrios.org/" target="_blank" rel="noopener">KolibriOS</a> (Written entirely in Assembly)</li>
+            </ul>
+          </div>
+          <span class="tag">Legacy</span>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>🖥️ General Purpose OSes</h3>
+            <p>Stable, versatile daily drivers recommended for standard desktops, workstations, and home servers.</p>
+            <ul>
+              <li><a href="https://ubuntu.com/download" target="_blank" rel="noopener">Ubuntu LTS</a> (Industry Standard)</li>
+              <li><a href="https://linuxmint.com/" target="_blank" rel="noopener">Linux Mint</a> (User-Friendly Desktop)</li>
+              <li><a href="https://getfedora.org/" target="_blank" rel="noopener">Fedora Workstation</a> (Latest Upstream Tech)</li>
+            </ul>
+          </div>
+          <span class="tag">Desktop / Server</span>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>🤖 AI & Machine Learning OSes</h3>
+            <p>Pre-configured distributions bundled with CUDA libraries, PyTorch, TensorFlow, and GPU drivers.</p>
+            <ul>
+              <li><a href="https://system76.com/pop" target="_blank" rel="noopener">Pop!_OS (NVIDIA ISO)</a> (Out-of-box CUDA setup)</li>
+              <li><a href="https://ubuntu.com/appliance/ai" target="_blank" rel="noopener">Ubuntu AI Stack</a> (Production ML Deployment)</li>
+            </ul>
+          </div>
+          <span class="tag">AI / CUDA</span>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>🎮 Gaming OSes</h3>
+            <p>Optimized image builds featuring Mesa graphics drivers, kernel latency tweaks, and pre-installed Steam/Proton.</p>
+            <ul>
+              <li><a href="https://nobaraproject.org/" target="_blank" rel="noopener">Nobara Linux</a> (Customized Gaming Kernel)</li>
+              <li><a href="https://bazzite.gg/" target="_blank" rel="noopener">Bazzite</a> (SteamOS-like Immutable Image)</li>
+              <li><a href="https://garudalinux.org/" target="_blank" rel="noopener">Garuda Dragonized</a> (Arch-based Gaming Edition)</li>
+            </ul>
+          </div>
+          <span class="tag">Gaming</span>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>💼 Productivity OSes</h3>
+            <p>Distros tailored for distraction-free workflows, creative suites, software development, and office tasks.</p>
+            <ul>
+              <li><a href="https://ubuntustudio.org/" target="_blank" rel="noopener">Ubuntu Studio</a> (Audio/Video Production Suite)</li>
+              <li><a href="https://elementary.io/" target="_blank" rel="noopener">elementary OS</a> (Sleek macOS-like UX)</li>
+            </ul>
+          </div>
+          <span class="tag">Creative / Office</span>
+        </div>
+
+        <div class="card">
+          <div>
+            <h3>🛡️ Backup & Disaster Recovery OSes</h3>
+            <p>Bootable utilities designed for drive cloning, partition management, forensic recovery, and system repair.</p>
+            <ul>
+              <li><a href="https://clonezilla.org/" target="_blank" rel="noopener">Clonezilla Live</a> (Bare-metal Disk Imaging)</li>
+              <li><a href="https://www.system-rescue.org/" target="_blank" rel="noopener">SystemRescue</a> (Admin & Repair Utility)</li>
+              <li><a href="https://gparted.org/livecd.php" target="_blank" rel="noopener">GParted Live</a> (Partition Management)</li>
+            </ul>
+          </div>
+          <span class="tag">Recovery / Tools</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Hosted on Firebase Hosting • Linux Lore Project <button id="vault-trigger" aria-label="Open Secret Vault" title="???">🔒</button></p>
+    </div>
+  </footer>
+
+  <!-- Secret Vault Panel -->
+  <div id="secret-vault" class="vault-panel hidden" aria-hidden="true">
+    <div class="vault-header">
+      <h2>🕵️ Secret Vault: Terminal Pro-Tips</h2>
+      <button id="vault-close" aria-label="Close Vault">&times;</button>
+    </div>
+    <div class="vault-body">
+      <p class="vault-intro">You've unlocked the forbidden knowledge panel. Here are some secret Linux power-user suggestions:</p>
+
+      <div class="suggestion-card">
+        <span class="badge">Tip #1</span>
+        <h3>Fix typos with <code>^old^new</code></h3>
+        <p>Made a typo in your last command? Swap words instantly without retyping:</p>
+        <pre><code>$ apt-get install nginx
+$ ^install^remove</code></pre>
+      </div>
+
+      <div class="suggestion-card">
+        <span class="badge">Tip #2</span>
+        <h3>Run the previous command as root</h3>
+        <p>Forgot <code>sudo</code> on a long command? Use <code>!!</code> to auto-insert it:</p>
+        <pre><code>$ systemctl restart nginx
+Permission denied.
+$ sudo !!</code></pre>
+      </div>
+
+      <div class="suggestion-card">
+        <span class="badge">Tip #3</span>
+        <h3>Reuse the last argument with <code>!$</code></h3>
+        <p>Pass the last argument from your previous command into the next:</p>
+        <pre><code>$ mkdir -p /var/www/my-site
+$ cd !$</code></pre>
+      </div>
+
+      <div class="suggestion-card">
+        <span class="badge">Tip #4</span>
+        <h3>Search command history instantly</h3>
+        <p>Press <kbd>Ctrl</kbd> + <kbd>R</kbd> in your terminal and type to reverse-search every command you've ever run.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="vault-overlay" class="vault-overlay hidden"></div>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>

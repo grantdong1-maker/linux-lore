@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <title>Why Does Linux Have /proc? — Linux Lore</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <a href="index.html" class="back-link">🐧 Linux Lore</a>
+      <button id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="container article-body">
+    <h1>📁 Why Does Linux Have <code>/proc</code>?</h1>
+
+    <p>You open a Linux terminal and run:</p>
+    <pre><code>ls /</code></pre>
+    <p>You get a bunch of directories:</p>
+    <pre><code>bin
+boot
+dev
+etc
+home
+lib
+proc
+root
+run
+sys
+tmp
+usr
+var</code></pre>
+
+    <p>Most of these make some amount of sense.</p>
+    <p><code>/home</code> contains users' files.</p>
+    <p><code>/etc</code> contains configuration.</p>
+    <p><code>/tmp</code> contains temporary files.</p>
+
+    <p>But then there's:</p>
+    <pre><code>/proc</code></pre>
+
+    <p>You open it:</p>
+    <pre><code>ls /proc</code></pre>
+
+    <p>And suddenly you get something like:</p>
+    <pre><code>1
+2
+3
+4
+...
+cpuinfo
+meminfo
+mounts
+uptime
+version</code></pre>
+
+    <p>What are all those numbers?</p>
+    <p>And why does a directory contain things called <code>cpuinfo</code> and <code>uptime</code>?</p>
+    <p><strong>Welcome to one of Linux's stranger ideas.</strong></p>
+
+    <hr>
+
+    <h2>🧠 <code>/proc</code> isn't really a normal directory</h2>
+    <p>The first thing to understand is that <code>/proc</code> is a <strong>virtual filesystem</strong>.</p>
+    <p>Normally, when you create a file, its contents are stored somewhere on a physical storage device:</p>
+
+    <pre><code>SSD
+ │
+ └── file.txt
+       │
+       └── "Hello"</code></pre>
+
+    <p>But <code>/proc</code> is different.</p>
+    <p>The files you see there aren't ordinary files sitting on your SSD.</p>
+    <p>Linux creates them dynamically to expose information from the <strong>running kernel</strong>.</p>
+    <p>You can think of <code>/proc</code> as a window into what the operating system is currently doing.</p>
+
+    <pre><code>             Linux kernel
+                  │
+        ┌─────────┼─────────┐
+        │         │         │
+       CPU       RAM     processes
+        │         │         │
+        └─────────┼─────────┘
+                  │
+                  ▼
+               /proc</code></pre>
+
+    <p>The filesystem gives programs a convenient way to ask the kernel questions.</p>
+
+    <hr>
+
+    <h2>🔢 So what's <code>/proc/1</code>?</h2>
+    <p>Remember all those numbers?</p>
+    <p>They're mostly <strong>process IDs</strong>, or <strong>PIDs</strong>.</p>
+    <p>Every running process on Linux gets a number.</p>
+
+    <p>For example:</p>
+    <pre><code>ls /proc</code></pre>
+    <p>might show:</p>
+    <pre><code>1
+42
+317
+842
+1294
+...</code></pre>
+
+    <p>Those directories correspond to processes.</p>
+
+    <p>Try:</p>
+    <pre><code>ls /proc/1</code></pre>
+    <p>You'll see a whole collection of strange-looking entries.</p>
+    <p>You can also ask Linux what process PID 1 actually is:</p>
+    <pre><code>ps -p 1</code></pre>
+
+    <p>On many modern Linux systems, you'll see something related to:</p>
+    <pre><code>systemd</code></pre>
+
+    <p>PID 1 is special.</p>
+    <p>It's the first userspace process started by the kernel and is responsible for a bunch of important system-management duties.</p>
+    <p>If you want to learn more about that, you've just discovered your first <strong>rabbit hole</strong>.</p>
+
+    <hr>
+
+    <h2>🖥️ <code>/proc/cpuinfo</code></h2>
+    <p>Try:</p>
+    <pre><code>cat /proc/cpuinfo</code></pre>
+    <p>You'll get information about your CPU.</p>
+    <p>Depending on your processor, you might see things such as:</p>
+    <pre><code>processor
+vendor_id
+cpu family
+model
+model name
+cpu MHz
+cache size
+flags</code></pre>
+
+    <p>Where did this file come from?</p>
+    <p>You didn't create it.</p>
+    <p>It isn't sitting on your SSD.</p>
+    <p>The kernel is providing the information through the <code>/proc</code> filesystem.</p>
+    <p>This means that <code>cat /proc/cpuinfo</code> is essentially asking Linux: <strong>"Tell me about the CPU."</strong></p>
+
+    <hr>
+
+    <h2>🧠 <code>/proc/meminfo</code></h2>
+    <p>Now try:</p>
+    <pre><code>cat /proc/meminfo</code></pre>
+    <p>You'll see information about memory:</p>
+    <pre><code>MemTotal
+MemFree
+MemAvailable
+Buffers
+Cached
+SwapTotal
+SwapFree</code></pre>
+
+    <p>Again, these aren't ordinary text files that some program constantly rewrites.</p>
+    <p>They're an interface provided by the kernel.</p>
+    <p>The information can change as the state of the system changes.</p>
+    <p>For example, if you open a large application and run <code>cat /proc/meminfo</code> again, some values will have changed.</p>
+    <p>The "file" is effectively giving you a <strong>snapshot of the system's current state</strong>.</p>
+
+    <hr>
+
+    <h2>⏱️ <code>/proc/uptime</code></h2>
+    <p>Try:</p>
+    <pre><code>cat /proc/uptime</code></pre>
+    <p>You might get something like:</p>
+    <pre><code>18342.51 29173.42</code></pre>
+    <p>The first number represents how many seconds the system has been running.</p>
+    <p>So if your computer has been running for roughly five hours, the first number will be around <code>18000</code>.</p>
+    <p>Again: <strong>That number isn't sitting on your SSD.</strong> Linux generates it when you read the file.</p>
+
+    <hr>
+
+    <h2>👀 The really interesting part</h2>
+    <p>You can actually watch <code>/proc</code> change.</p>
+    <p>Open one terminal and run:</p>
+    <pre><code>watch ls /proc</code></pre>
+    <p>Then open programs.</p>
+    <p>You'll notice new numbered directories appearing as processes start.</p>
+    <p>Close programs and those directories disappear.</p>
+    <p>That's because the directories correspond to <strong>currently existing processes</strong>.</p>
+
+    <pre><code>Start Firefox ➔ Firefox gets a PID ➔ /proc/<PID> appears ➔ Firefox exits ➔ /proc/<PID> disappears</code></pre>
+
+    <p>The filesystem is effectively reflecting what's happening inside the running operating system.</p>
+
+    <hr>
+
+    <h2>🔬 Look inside a process</h2>
+    <p>Suppose you have a process with PID <code>1234</code>.</p>
+    <p>You can look inside:</p>
+    <pre><code>ls /proc/1234</code></pre>
+    <p>You might find:</p>
+    <pre><code>cmdline
+cwd
+environ
+exe
+fd
+maps
+status
+stat</code></pre>
+
+    <p>These expose different pieces of information about the process.</p>
+    <p>For example, <code>cat /proc/1234/status</code> can show information about the process's state, memory usage, IDs and more.</p>
+    <p>And <code>readlink /proc/1234/exe</code> can show which executable the process is running.</p>
+    <p>One particularly interesting entry is <code>/proc/1234/fd</code>. That's the process's <strong>file-descriptor directory</strong>.</p>
+
+    <hr>
+
+    <h2>🤯 Is <code>/proc</code> stored in RAM?</h2>
+    <p>Not in the normal sense.</p>
+    <p>You might hear people describe <code>/proc</code> as a "RAM filesystem", but that's an oversimplification.</p>
+    <p><code>procfs</code> is a <strong>virtual filesystem implemented by the kernel</strong>.</p>
+    <p>It doesn't represent ordinary persistent storage. Its contents are generated from kernel information.</p>
+
+    <hr>
+
+    <h2>🐧 Why did Linux do this?</h2>
+    <p>This is part of a much older Unix idea: <strong>Give programs a simple interface to interact with the system.</strong></p>
+    <p>Instead of requiring every program to have a completely different mechanism for asking the operating system about processes, devices and system information, Linux can expose information through familiar filesystem interfaces.</p>
+    <p>Programs already know how to <code>open</code>, <code>read</code>, <code>write</code>, and <code>close</code> files.</p>
+
+    <hr>
+
+    <h2>👀 <code>/sys</code> is watching you too</h2>
+    <p>Run <code>ls /</code> and you'll probably see <code>proc</code>, <code>sys</code>, and <code>dev</code>.</p>
+    <p><code>/sys</code> is another important virtual filesystem (sysfs) that exposes information about devices, drivers, the kernel and hardware-related objects.</p>
+
+    <hr>
+
+    <h2>🧩 <code>/dev</code></h2>
+    <p>Look inside <code>ls /dev</code> and you may see entries like <code>null</code>, <code>zero</code>, <code>random</code>, <code>tty</code>, or <code>nvme0n1</code>.</p>
+    <p>Some of these are <strong>device files</strong>. For example, your SSD might appear as <code>/dev/nvme0n1</code>.</p>
+    <p>And then there are things like <code>/dev/null</code>, which is essentially a black hole for data:</p>
+    <pre><code>echo "hello" > /dev/null</code></pre>
+
+    <hr>
+
+    <h2>🧠 The bigger idea</h2>
+    <p>At this point, Linux's filesystem starts looking less like a folder full of documents and more like an <strong>interface to the entire computer</strong>:</p>
+
+    <pre><code>/home   → your files
+/etc    → configuration
+/proc   → processes/kernel information
+/sys    → devices/kernel information
+/dev    → device interfaces</code></pre>
+
+    <p>And this leads directly into one of the most famous ideas inherited from Unix: <strong>"Everything is a file."</strong></p>
+
+    <hr>
+
+    <h2>🧪 Try it yourself</h2>
+    <p>If you're running Linux, try these:</p>
+    <p>Find your PID:</p>
+    <pre><code>echo $$</code></pre>
+    <p>Look at information about the shell you're currently using:</p>
+    <pre><code>ls /proc/$$
+cat /proc/$$/status
+readlink /proc/$$/exe</code></pre>
+
+    <hr>
+
+    <h2>🕳️ Rabbit Hole → PID 1</h2>
+    <p>Remember PID 1? Go investigate it:</p>
+    <pre><code>ps -p 1 -o pid,comm,args
+ls /proc/1</code></pre>
+
+    <hr>
+
+    <h2>📝 TL;DR</h2>
+    <p><code>/proc</code> is a <strong>virtual filesystem provided by the Linux kernel</strong>. Its contents aren't ordinary files stored on your SSD.</p>
+
+    <p>It provides a filesystem-like way to access information about running processes, CPU information, memory, system uptime, and kernel state.</p>
+
+    <p>The numbered directories represent process IDs and appear/disappear as processes start and stop.</p>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Hosted on Firebase Hosting • Linux Lore Project</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>

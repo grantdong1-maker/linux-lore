@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <title>What Actually Happens When You Type a Command into Bash? — Linux Lore</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <a href="index.html" class="back-link">🐧 Linux Lore</a>
+      <button id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="container article-body">
+    <h1>⌨️ What Actually Happens When You Type a Command into Bash?</h1>
+
+    <p>You type:</p>
+    <pre><code>ls</code></pre>
+    <p>You press Enter.</p>
+    <p>Your files appear.</p>
+    <p>Seems simple.</p>
+    <p>But underneath that one command, Linux has to do quite a lot.</p>
+
+    <p>The shell has to:</p>
+    <ol>
+      <li>Read what you typed.</li>
+      <li>Work out what you mean.</li>
+      <li>Find the program.</li>
+      <li>Create a process.</li>
+      <li>Start the program.</li>
+      <li>Give it access to input/output.</li>
+      <li>Wait for it to finish.</li>
+      <li>Collect its exit status.</li>
+    </ol>
+
+    <p>And that's just:</p>
+    <pre><code>ls</code></pre>
+
+    <p>Add a pipe:</p>
+    <pre><code>ls | grep ".txt"</code></pre>
+    <p>and things get considerably more interesting.</p>
+
+    <hr>
+
+    <h2>🧠 The short answer</h2>
+    <p>When you type a command into Bash, the basic process looks something like:</p>
+
+    <pre><code>You type command
+       │
+       ▼
+     Bash
+       │
+       ▼
+Parse command
+       │
+       ▼
+Find program
+       │
+       ▼
+   fork()
+       │
+       ▼
+   Child process
+       │
+       ▼
+   exec()
+       │
+       ▼
+Program runs
+       │
+       ▼
+   exit()
+       │
+       ▼
+Bash calls wait()</code></pre>
+
+    <p>There are plenty of details hidden inside that diagram, but that's the basic idea.</p>
+    <p>Let's take it apart.</p>
+
+    <hr>
+
+    <h2>1️⃣ You type something</h2>
+    <p>Suppose you type:</p>
+    <pre><code>ls -l</code></pre>
+    <p>Your keyboard isn't directly talking to <code>ls</code>.</p>
+    <p>The characters go through your terminal and eventually become input available to the shell.</p>
+    <p>Bash is the program currently interpreting your commands.</p>
+    <p>You can check which shell you're using with:</p>
+    <pre><code>echo $SHELL</code></pre>
+    <p>On many Linux systems, you'll see something like:</p>
+    <pre><code>/bin/bash</code></pre>
+
+    <hr>
+
+    <h2>2️⃣ Bash reads the command</h2>
+    <p>Bash receives:</p>
+    <pre><code>ls -l</code></pre>
+    <p>It doesn't immediately execute the text as one giant blob.</p>
+    <p>It has to <strong>parse</strong> it.</p>
+    <p>Parsing means figuring out the structure of the command.</p>
+    <p>For:</p>
+    <pre><code>ls -l</code></pre>
+    <p>Bash can break it into roughly:</p>
+    <pre><code>command:
+    ls
+
+argument:
+    -l</code></pre>
+
+    <p>But Bash has to handle much more complicated syntax too.</p>
+    <p>For example:</p>
+    <pre><code>ls -l > files.txt</code></pre>
+    <p>Now Bash needs to understand:</p>
+    <pre><code>command → ls
+argument → -l
+redirect stdout → files.txt</code></pre>
+
+    <p>Or:</p>
+    <pre><code>ls | grep txt</code></pre>
+    <p>Now there are two commands:</p>
+    <pre><code>ls
+ │
+ │ pipe
+ ▼
+grep txt</code></pre>
+    <p>The shell is responsible for setting all of that up.</p>
+
+    <hr>
+
+    <h2>3️⃣ Bash checks whether it's a built-in</h2>
+    <p>Here's an important detail.</p>
+    <p>Not every command you type is a separate program.</p>
+    <p>Bash has <strong>built-in commands</strong>.</p>
+    <p>For example:</p>
+    <pre><code>cd</code></pre>
+    <p>is a shell builtin.</p>
+
+    <p>Try:</p>
+    <pre><code>type cd</code></pre>
+    <p>You might get:</p>
+    <pre><code>cd is a shell builtin</code></pre>
+
+    <p>But:</p>
+    <pre><code>type ls</code></pre>
+    <p>will usually point to an executable somewhere on your system.</p>
+    <p>For example:</p>
+    <pre><code>ls is /usr/bin/ls</code></pre>
+    <p>This distinction matters.</p>
+
+    <hr>
+
+    <h2>🤔 Why is <code>cd</code> built into Bash?</h2>
+    <p>Because <code>cd</code> needs to change the <strong>current working directory of the shell itself</strong>.</p>
+    <p>Imagine Bash did this:</p>
+    <pre><code>Bash
+ │
+ └── child process
+       │
+       └── cd /home</code></pre>
+    <p>The child could change <em>its</em> directory.</p>
+    <p>But when it exits:</p>
+    <pre><code>Bash
+ │
+ └── still in old directory</code></pre>
+    <p>That wouldn't be useful.</p>
+    <p>So Bash handles <code>cd</code> itself.</p>
+    <p>This is also why commands such as:</p>
+    <pre><code>cd
+export
+alias
+unset</code></pre>
+    <p>are commonly shell builtins.</p>
+
+    <hr>
+
+    <h2>4️⃣ Bash searches for the program</h2>
+    <p>Suppose you type:</p>
+    <pre><code>ls</code></pre>
+    <p>Where is <code>ls</code>?</p>
+    <p>Bash uses an environment variable called:</p>
+    <pre><code>PATH</code></pre>
+    <p>Try:</p>
+    <pre><code>echo $PATH</code></pre>
+    <p>You'll probably see something vaguely like:</p>
+    <pre><code>/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin</code></pre>
+    <p>The <code>:</code> separates directories.</p>
+    <p>Bash searches these directories for executable programs.</p>
+    <p>So it might effectively check:</p>
+    <pre><code>/usr/local/bin/ls
+/usr/bin/ls
+/bin/ls
+...</code></pre>
+    <p>until it finds an appropriate executable.</p>
+    <p>You can see the location with:</p>
+    <pre><code>which ls</code></pre>
+    <p>or, more specifically for Bash:</p>
+    <pre><code>type -a ls</code></pre>
+
+    <hr>
+
+    <h2>🧩 <code>PATH</code> is just a list</h2>
+    <p><code>PATH</code> isn't some magical database.</p>
+    <p>It's essentially a list of directories.</p>
+    <p>For example:</p>
+    <pre><code>PATH=/a:/b:/c</code></pre>
+    <p>means:</p>
+    <pre><code>/a
+/b
+/c</code></pre>
+    <p>When you type:</p>
+    <pre><code>program</code></pre>
+    <p>the shell searches those locations for:</p>
+    <pre><code>/a/program
+/b/program
+/c/program</code></pre>
+    <p>If it finds an executable, that's what it can run.</p>
+    <p>This is why typing:</p>
+    <pre><code>program</code></pre>
+    <p>can work even though you didn't type:</p>
+    <pre><code>/usr/local/bin/program</code></pre>
+
+    <hr>
+
+    <h2>5️⃣ Bash creates a process</h2>
+    <p>Now we're getting into the fun stuff.</p>
+    <p>Suppose <code>ls</code> isn't a Bash builtin.</p>
+    <p>Bash needs to run another program.</p>
+    <p>It generally creates a child process.</p>
+    <p>A traditional Unix/Linux mechanism for this is:</p>
+    <pre><code>fork()</code></pre>
+
+    <p>Conceptually:</p>
+    <pre><code>Before fork():
+
+Bash</code></pre>
+    <p>After:</p>
+    <pre><code>        Bash
+       /    \
+    Bash     Child</code></pre>
+
+    <p>The child is initially very similar to the parent.</p>
+    <p>It has its own process identity, but it inherits a lot of the parent's process state, including things such as open file descriptors.</p>
+
+    <hr>
+
+    <h2>6️⃣ The child becomes <code>ls</code></h2>
+    <p>Here's the really cool part.</p>
+    <p>The child process doesn't need to remain Bash.</p>
+    <p>It can replace its program image with another program using:</p>
+    <pre><code>exec()</code></pre>
+    <p>There are actually several <code>exec*()</code> functions, collectively called the <strong>exec family</strong>.</p>
+
+    <p>Conceptually:</p>
+    <pre><code>Child process
+     │
+     │ exec()
+     ▼
+    /usr/bin/ls</code></pre>
+
+    <p>The process itself continues with the same PID, but its running program is replaced.</p>
+    <p>So:</p>
+    <pre><code>Bash
+ │
+ └── PID 420
+      │
+      └── Bash code</code></pre>
+    <p>becomes:</p>
+    <pre><code>Bash
+ │
+ └── PID 420
+      │
+      └── ls code</code></pre>
+
+    <p>The PID stays the same.</p>
+    <p>The program being executed changes.</p>
+
+    <hr>
+
+    <h2>🤯 <code>fork()</code> + <code>exec()</code> is everywhere</h2>
+    <p>A simplified version of running an external command is:</p>
+    <pre><code>Bash
+ │
+ ├── fork()
+ │
+ └── child
+       │
+       └── exec("/usr/bin/ls")
+                    │
+                    ▼
+                   ls</code></pre>
+
+    <p>This pattern is fundamental to Unix-like operating systems.</p>
+    <p>It also explains why our zombie article mattered.</p>
+    <p>When <code>ls</code> finishes:</p>
+    <pre><code>ls
+ │
+ └── exit()</code></pre>
+
+    <p>Bash can collect the result with:</p>
+    <pre><code>wait()</code></pre>
+    <p>So our previous articles are starting to connect.</p>
+
+    <hr>
+
+    <h2>7️⃣ What about the output?</h2>
+    <p>Remember file descriptors?</p>
+    <p>A process normally starts with:</p>
+    <pre><code>0 → stdin
+1 → stdout
+2 → stderr</code></pre>
+
+    <p>When Bash launches <code>ls</code>, those descriptors can be inherited by the child.</p>
+    <p>So:</p>
+    <pre><code>Bash
+ │
+ ├── stdout → terminal
+ │
+ └── fork()
+       │
+       └── ls
+            │
+            └── stdout → terminal</code></pre>
+
+    <p>That's why <code>ls</code> can simply write to stdout and the output appears in your terminal.</p>
+
+    <hr>
+
+    <h2>8️⃣ Redirection changes everything</h2>
+    <p>Now type:</p>
+    <pre><code>ls > files.txt</code></pre>
+    <p>Bash sees the <code>></code>.</p>
+    <p>It knows this means:</p>
+    <blockquote>Send standard output somewhere else.</blockquote>
+
+    <p>Conceptually, Bash sets up:</p>
+    <pre><code>ls
+ │
+ │ stdout
+ ▼
+files.txt</code></pre>
+    <p>instead of:</p>
+    <pre><code>ls
+ │
+ │ stdout
+ ▼
+terminal</code></pre>
+
+    <p>The <code>ls</code> program doesn't need special knowledge about the shell syntax.</p>
+    <p>As far as <code>ls</code> is concerned, it just writes to:</p>
+    <pre><code>stdout</code></pre>
+    <p>Bash changed what stdout points to.</p>
+    <p>This is one of the reasons file descriptors are so powerful.</p>
+
+    <hr>
+
+    <h2>🔀 9️⃣ Now add a pipe</h2>
+    <p>Consider:</p>
+    <pre><code>ls | grep txt</code></pre>
+
+    <p>Bash has to create two processes:</p>
+    <pre><code>        Bash
+       /    \
+      ls    grep
+       │      ▲
+       │      │
+       └ PIPE ┘</code></pre>
+
+    <p>More accurately:</p>
+    <pre><code>ls
+ │
+ │ stdout
+ ▼
+┌─────────┐
+│  PIPE   │
+└─────────┘
+ │
+ │ stdin
+ ▼
+grep txt</code></pre>
+
+    <p>Bash creates the pipe and connects the processes to its two ends.</p>
+    <p>Then:</p>
+    <pre><code>ls</code></pre>
+    <p>writes into the pipe.</p>
+    <p>And:</p>
+    <pre><code>grep</code></pre>
+    <p>reads from it.</p>
+
+    <hr>
+
+    <h2>🧠 Bash is basically an orchestra conductor</h2>
+    <p>This is where the shell becomes really interesting.</p>
+    <p>Bash isn't necessarily doing the actual work of:</p>
+    <pre><code>ls
+grep
+sort
+wc
+python</code></pre>
+    <p>Instead, it's coordinating them.</p>
+    <p>It says, roughly:</p>
+    <pre><code>“Run this.”
+“Give it this input.”
+“Send its output here.”
+“Connect these two programs.”
+“Run this one in the background.”
+“Wait for these processes.”
+“Tell me when they're finished.”</code></pre>
+    <p>The kernel then provides the underlying mechanisms.</p>
+
+    <hr>
+
+    <h2>🔟 The program runs</h2>
+    <p>Eventually the child has become <code>ls</code>:</p>
+    <pre><code>PID 420
+/usr/bin/ls</code></pre>
+
+    <p>The CPU starts executing its instructions.</p>
+    <p><code>ls</code>:</p>
+    <ul>
+      <li>looks at the current directory</li>
+      <li>obtains information about entries</li>
+      <li>formats the output</li>
+      <li>writes the result to stdout</li>
+    </ul>
+    <p>Eventually it finishes.</p>
+
+    <hr>
+
+    <h2>1️⃣1️⃣ The process exits</h2>
+    <p>When <code>ls</code> is finished, it exits.</p>
+    <p>Conceptually:</p>
+    <pre><code>ls
+ │
+ └── exit(0)</code></pre>
+
+    <p>The <code>0</code> means successful completion in the conventional Unix sense.</p>
+    <p>Bash needs to know the result.</p>
+    <p>So it waits for the child:</p>
+    <pre><code>Bash
+ │
+ └── wait()
+       │
+       ▼
+   exit status</code></pre>
+
+    <p>Then Bash can show you another prompt:</p>
+    <pre><code>tux@linux:~$</code></pre>
+    <p>The whole cycle is complete.</p>
+
+    <hr>
+
+    <h2>🧪 You can see some of this yourself</h2>
+    <p>Run:</p>
+    <pre><code>type ls</code></pre>
+    <p>Then:</p>
+    <pre><code>type cd</code></pre>
+    <p>You'll see that they're different kinds of commands.</p>
+
+    <p>Now:</p>
+    <pre><code>which ls</code></pre>
+    <p>This should give the path to the executable.</p>
+
+    <p>Then:</p>
+    <pre><code>echo $PATH</code></pre>
+    <p>to see where Bash searches.</p>
+
+    <p>You can also inspect the process tree:</p>
+    <pre><code>pstree</code></pre>
+
+    <p>While a program is running, another terminal can show its processes with:</p>
+    <pre><code>ps</code></pre>
+
+    <hr>
+
+    <h2>🐌 What about a slow command?</h2>
+    <p>Try something harmless like:</p>
+    <pre><code>sleep 10</code></pre>
+
+    <p>While it's running, open another terminal and use:</p>
+    <pre><code>ps</code></pre>
+
+    <p>You should be able to find the <code>sleep</code> process.</p>
+    <p>You can also see its PID and parent PID with:</p>
+    <pre><code>ps -o pid,ppid,state,cmd</code></pre>
+
+    <p>You might see something like:</p>
+    <pre><code>PID   PPID   S CMD
+420    100   S sleep 10</code></pre>
+
+    <p>So:</p>
+    <pre><code>PPID 100
+   │
+   └── PID 420
+        └── sleep 10</code></pre>
+
+    <p>Once the ten seconds are over, the process exits.</p>
+
+    <hr>
+
+    <h2>⚙️ What the kernel actually does</h2>
+    <p>Bash can't simply tell the CPU:</p>
+    <blockquote>“Hey, run <code>/usr/bin/ls</code>.”</blockquote>
+
+    <p>There is a boundary between ordinary programs and the kernel.</p>
+    <p>Programs request operating-system services using <strong>system calls</strong>.</p>
+    <p>The exact sequence varies depending on the shell, implementation, platform, and command, but conceptually you can think of:</p>
+
+    <pre><code>Bash
+ │
+ │ system calls
+ ▼
+Kernel
+ │
+ ├── create/manage process
+ ├── open files
+ ├── set up pipes
+ ├── manage memory
+ ├── access filesystem
+ └── schedule CPU time</code></pre>
+
+    <p>The kernel is ultimately responsible for controlling access to the hardware and system resources.</p>
+
+    <hr>
+
+    <h2>🧩 And now everything connects</h2>
+    <p>Look at what we've learned so far.</p>
+
+    <h3>Article #1 — <code>/proc</code></h3>
+    <p>Processes have information exposed through:</p>
+    <pre><code>/proc/&lt;PID&gt;</code></pre>
+
+    <h3>Article #2 — <code>sudo</code></h3>
+    <p>The kernel ultimately decides whether a process is allowed to perform privileged operations.</p>
+
+    <h3>Article #3 — “Everything is a file”</h3>
+    <p>Processes communicate through file descriptors:</p>
+    <pre><code>stdin
+stdout
+stderr
+pipes
+files
+terminals</code></pre>
+
+    <h3>Article #4 — Zombies</h3>
+    <p>A parent can wait for a child after it exits.</p>
+
+    <h3>Article #5 — Bash</h3>
+    <p>Now put them together:</p>
+
+    <pre><code>             Bash
+              │
+           fork()
+              │
+              ▼
+          Child process
+              │
+           exec()
+              │
+              ▼
+           Program
+              │
+       ┌──────┴──────┐
+       │             │
+     stdout        stderr
+       │             │
+       ▼             ▼
+    terminal       terminal
+              │
+           exit()
+              │
+              ▼
+           wait()
+              │
+              ▼
+            Bash</code></pre>
+
+    <p>That's a surprisingly large amount of operating-system theory hiding behind:</p>
+    <pre><code>ls</code></pre>
+
+    <hr>
+
+    <h2>🤯 The weird bit</h2>
+    <p>Here's the part that tends to break people's brains:</p>
+    <p>When Bash runs an external program, <strong>the process doesn't necessarily disappear and get replaced by another process.</strong></p>
+
+    <p>Instead, you can have:</p>
+    <pre><code>Bash
+ │
+ └── child PID 420</code></pre>
+
+    <p>and then PID 420 does:</p>
+    <pre><code>exec()</code></pre>
+
+    <p>Now PID 420 is running an entirely different program.</p>
+    <p>So:</p>
+    <pre><code>PID 420
+   │
+   ├── Bash? ❌
+   │
+   └── ls? ✅</code></pre>
+
+    <p>Same process identity.</p>
+    <p>Different program image.</p>
+    <p>That's what makes <code>exec()</code> so interesting.</p>
+
+    <hr>
+
+    <h2>🧟 And remember the zombies</h2>
+    <p>If the child finishes:</p>
+    <pre><code>Child
+  │
+  └── exit()</code></pre>
+
+    <p>but Bash doesn't collect its status:</p>
+    <pre><code>Bash
+ │
+ └── Zombie</code></pre>
+
+    <p>So the zombie from Article #4 wasn't some completely separate phenomenon.</p>
+    <p>It can literally be the final stage of the process you just watched Bash create.</p>
+
+    <hr>
+
+    <h2>🕳️ Rabbit hole →</h2>
+    <p>If you want to go deeper, there are several directions.</p>
+
+    <h3><code>fork()</code> under the microscope</h3>
+    <p>How can a process apparently duplicate itself? And why doesn't Linux literally copy every byte of memory immediately? <strong>Hint:</strong> copy-on-write.</p>
+
+    <h3><code>execve()</code></h3>
+    <p>The real system call underneath the <code>exec</code> family. It loads a new executable and its environment into the process.</p>
+
+    <h3>ELF</h3>
+    <p>Linux executables are commonly stored using the <strong>Executable and Linkable Format</strong>. That's what lies underneath many files such as <code>/usr/bin/ls</code> and <code>/usr/bin/bash</code>.</p>
+
+    <h3>Dynamic linking</h3>
+    <p><code>ls</code> doesn't necessarily contain every library function it needs. Linux can load shared libraries such as <code>libc.so</code> into memory.</p>
+    <p>So running one command can involve:</p>
+    <pre><code>Bash ➔ fork ➔ exec ➔ ELF loader ➔ shared libraries ➔ program</code></pre>
+
+    <h3>Environment variables</h3>
+    <p>Things like <code>PATH</code>, <code>HOME</code>, <code>USER</code>, and <code>SHELL</code> are passed into programs through their environment. Try <code>env</code>.</p>
+
+    <h3>Shebangs</h3>
+    <p>Why does <code>./script.py</code> work when the file isn't itself a machine-code executable? Because of <code>#!/usr/bin/python3</code>. The kernel uses the <strong>shebang</strong> to determine which interpreter should execute the script.</p>
+
+    <hr>
+
+    <h2>📝 TL;DR</h2>
+    <p>When you type <code>ls</code>, Bash roughly does this:</p>
+    <pre><code>You ➔ type "ls" ➔ Bash ➔ parse command ➔ find executable using PATH ➔ fork() ➔ Child ➔ set up input/output ➔ exec() ➔ ls (does work) ➔ exit() ➔ Bash waits ➔ prompt returns</code></pre>
+
+    <p>And when you type <code>ls | grep txt</code>, Bash has to coordinate <strong>multiple processes and a pipe</strong>:</p>
+    <pre><code>ls ➔ PIPE ➔ grep</code></pre>
+
+    <p>So the next time you type a command and instantly get an answer, remember: <strong>Bash just orchestrated a tiny process-management operation involving the kernel, processes, file descriptors, and probably several system calls.</strong></p>
+
+    <p>All so you could see a list of files.</p>
+    <p>Linux is normal.</p>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Hosted on Firebase Hosting • Linux Lore Project</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>

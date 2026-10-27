@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACCESS TERMINAL — Linux Lore</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css?v=5">
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="lore-auth-config.js"></script>
+  <style>
+    :root {
+      --term-bg: #000a04;
+      --term-green: #33ff66;
+      --term-dim: #1d7a3c;
+      --term-red: #ff4757;
+    }
+    html, body {
+      background: var(--term-bg);
+      color: var(--term-green);
+      font-family: var(--font-mono), monospace;
+    }
+    body { overflow-x: hidden; }
+
+    /* Matrix rain backdrop */
+    #matrixRain {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    /* CRT scanlines + vignette */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.45) 100%);
+    }
+
+    /* Subtle flicker */
+    @keyframes crt-flicker {
+      0%, 100% { opacity: 1; }
+      92% { opacity: 1; }
+      93% { opacity: 0.86; }
+      94% { opacity: 1; }
+      97% { opacity: 0.94; }
+    }
+    .login-shell { animation: crt-flicker 6s infinite; }
+
+    .login-shell {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .term-card {
+      width: 100%;
+      max-width: 480px;
+      background: rgba(0, 12, 4, 0.92);
+      border: 1px solid var(--term-dim);
+      border-radius: 10px;
+      box-shadow: 0 0 26px rgba(51, 255, 102, 0.14), inset 0 0 40px rgba(0, 255, 60, 0.04);
+      padding: 1.4rem 1.5rem 1.3rem;
+    }
+
+    .term-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border-bottom: 1px solid var(--term-dim);
+      padding-bottom: 0.75rem;
+      margin-bottom: 1rem;
+      font-size: 0.75rem;
+      color: var(--term-dim);
+    }
+    .term-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: #1d3a26; }
+    .term-bar .dot.active { background: var(--term-green); box-shadow: 0 0 8px rgba(51,255,102,0.6); }
+    .term-bar .title { margin-left: auto; letter-spacing: 0.05em; }
+
+    .term-ascii {
+      font-size: 0.68rem;
+      line-height: 1.25;
+      color: var(--term-green);
+      text-shadow: 0 0 8px rgba(51, 255, 102, 0.55);
+      margin: 0 0 1rem;
+      white-space: pre;
+      overflow: hidden;
+      /* neutralize the site-wide terminal-window pre styles */
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+      padding: 0;
+    }
+    .term-ascii::before {
+      content: none;
+    }
+
+    #bootLog {
+      margin: 0 0 1.1rem;
+      min-height: 6.2em;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      color: var(--term-dim);
+    }
+    #bootLog .ok { color: var(--term-green); }
+
+    form label {
+      display: none;
+    }
+
+    .field-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.55rem;
+      margin: 0.85rem 0;
+    }
+    .field-row.hidden-field { display: none; }
+    .field-row .prompt {
+      color: var(--term-green);
+      font-size: 0.8rem;
+      white-space: nowrap;
+      text-shadow: 0 0 7px rgba(51, 255, 102, 0.5);
+    }
+    .field-row input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--term-dim);
+      color: var(--term-green);
+      caret-color: var(--term-green);
+      font: 400 0.88rem var(--font-mono), monospace;
+      padding: 0.3rem 0.1rem;
+      outline: none;
+      text-shadow: 0 0 6px rgba(51, 255, 102, 0.45);
+    }
+    .field-row input:focus {
+      border-bottom-color: var(--term-green);
+      box-shadow: 0 1px 0 0 rgba(51, 255, 102, 0.55);
+    }
+    .field-row input::placeholder { color: rgba(51, 255, 102, 0.28); }
+    .field-row input:-webkit-autofill {
+      -webkit-text-fill-color: var(--term-green);
+      -webkit-box-shadow: 0 0 0 1000px rgba(0, 12, 4, 0.9) inset;
+    }
+
+    #loginSubmit {
+      width: 100%;
+      margin-top: 1.3rem;
+      background: transparent;
+      border: 1px solid var(--term-green);
+      color: var(--term-green);
+      font: 600 0.85rem var(--font-mono), monospace;
+      letter-spacing: 0.14em;
+      padding: 0.7rem;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(51, 255, 102, 0.6);
+      box-shadow: 0 0 12px rgba(51, 255, 102, 0.16), inset 0 0 12px rgba(51, 255, 102, 0.07);
+      transition: background .15s, color .15s, box-shadow .15s;
+    }
+    #loginSubmit:hover {
+      background: var(--term-green);
+      color: var(--term-bg);
+      text-shadow: none;
+      box-shadow: 0 0 24px rgba(51, 255, 102, 0.5);
+    }
+    #loginSubmit:disabled {
+      opacity: 0.55;
+      cursor: wait;
+      animation: pulse-bg 0.9s infinite;
+    }
+    @keyframes pulse-bg {
+      50% { box-shadow: 0 0 18px rgba(51, 255, 102, 0.4); }
+    }
+
+    .login-toggle {
+      font-size: 0.78rem;
+      color: var(--term-dim);
+      margin-top: 1rem;
+    }
+    .login-toggle a {
+      color: var(--term-green);
+      text-decoration: none;
+      text-shadow: 0 0 7px rgba(51, 255, 102, 0.5);
+    }
+    .login-toggle a::before { content: "./ "; }
+
+    #loginError {
+      display: none;
+      color: var(--term-red);
+      border: 1px solid rgba(255, 71, 87, 0.5);
+      background: rgba(255, 71, 87, 0.06);
+      font-size: 0.78rem;
+      padding: 0.6rem 0.8rem;
+      margin-top: 1rem;
+      line-height: 1.5;
+    }
+    .login-toggle::before { content: "$ "; color: var(--term-dim); }
+    #loginError::before { content: "[!] "; }
+
+    /* Pending verification state */
+    .verify-head {
+      color: var(--term-green);
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-shadow: 0 0 10px rgba(51, 255, 102, 0.6);
+      margin: 0.4rem 0 0.8rem;
+    }
+    .verify-text {
+      color: var(--term-dim);
+      font-size: 0.8rem;
+      margin: 0.25rem 0;
+    }
+    .verify-email {
+      color: var(--term-green);
+      text-shadow: 0 0 8px rgba(51, 255, 102, 0.6);
+      font-size: 0.85rem;
+      margin: 0.3rem 0 0.6rem;
+      word-break: break-all;
+    }
+    .term-btn {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--term-green);
+      color: var(--term-green);
+      font: 600 0.85rem var(--font-mono), monospace;
+      letter-spacing: 0.14em;
+      padding: 0.7rem;
+      cursor: pointer;
+      text-shadow: 0 0 8px rgba(51, 255, 102, 0.6);
+      box-shadow: 0 0 12px rgba(51, 255, 102, 0.16), inset 0 0 12px rgba(51, 255, 102, 0.07);
+      transition: background .15s, color .15s, box-shadow .15s;
+      text-align: center;
+    }
+    .term-btn:hover {
+      background: var(--term-green);
+      color: var(--term-bg);
+      text-shadow: none;
+      box-shadow: 0 0 24px rgba(51, 255, 102, 0.5);
+    }
+    .verify-alt {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.7rem;
+    }
+    .verify-alt button {
+      flex: 1;
+      background: transparent;
+      border: 1px solid var(--term-dim);
+      color: var(--term-dim);
+      font: 500 0.75rem var(--font-mono), monospace;
+      padding: 0.45rem 0.6rem;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .verify-alt button:hover { color: var(--term-green); border-color: var(--term-green); }
+    .verify-msg {
+      display: none;
+      font-size: 0.78rem;
+      color: var(--term-green);
+      margin-top: 0.7rem;
+    }
+    .verify-error { color: var(--term-red) !important; }
+
+    .login-foot {
+      color: var(--term-dim);
+      font-size: 0.68rem;
+      text-align: center;
+      margin-top: 1.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #matrixRain, .login-shell { animation: none; display: none; }
+    }
+  </style>
+</head>
+<body class="lore-login">
+
+  <canvas id="matrixRain" aria-hidden="true"></canvas>
+
+  <main class="login-shell">
+    <div class="term-card">
+      <div class="term-bar" aria-hidden="true">
+        <span class="dot active"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="title">tty0 — /usr/lore/auth — 80×24</span>
+      </div>
+
+      <pre class="term-ascii" aria-hidden="true">
+  .--.  L I N U X   L O R E
+ (    ) secure access terminal
+ ( (__)
+  '--'</pre>
+
+      <div id="bootLog" aria-hidden="true"></div>
+
+      <form id="loginForm" autocomplete="on">
+        <div class="field-row hidden-field" id="nameGroup">
+          <span class="prompt">name&gt;</span>
+          <input type="text" id="loginName" placeholder="handle" autocomplete="name">
+        </div>
+
+        <div class="field-row">
+          <span class="prompt">user&gt;</span>
+          <input type="email" id="loginEmail" placeholder="you@domain.tld" autocomplete="email" required>
+        </div>
+
+        <div class="field-row">
+          <span class="prompt">pass&gt;</span>
+          <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" minlength="6" required>
+        </div>
+
+        <button type="submit" id="loginSubmit">[ AUTHENTICATE ]</button>
+      </form>
+
+      <div id="loginError"></div>
+
+      <!-- Pending email verification screen -->
+      <div id="verifyScreen" style="display:none;">
+        <div class="verify-head">✉ VERIFICATION REQUIRED</div>
+        <p class="verify-text">A verification link was dispatched to:</p>
+        <p class="verify-email" id="verifyEmailSpan">—</p>
+        <p class="verify-text">Click the link in your inbox, then:</p>
+        <button type="button" id="btnVerifyDone" class="term-btn">[ I'VE VERIFIED — CONTINUE ]</button>
+        <div class="verify-alt">
+          <button type="button" id="btnVerifyResend">./resend-link</button>
+          <button type="button" id="btnVerifyDifferent">./use-different-account</button>
+        </div>
+        <div id="verifyMsg" class="verify-msg"></div>
+      </div>
+
+      <div class="login-toggle">
+        <span id="loginToggleText">no credentials? </span><a href="#" id="loginToggleLink">create-account --new</a>
+      </div>
+
+      <div class="login-foot">◉ linux-edu.web.app — session persists until sign-out</div>
+    </div>
+  </main>
+
+  <script>
+    /* ---------- Matrix rain (decorative) ---------- */
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      const canvas = document.getElementById('matrixRain');
+      const ctx = canvas.getContext('2d');
+      const glyphs = '01<>/$#%&アカサタナハマヤラワイキシチニ'.split('');
+      let fontSize = 14, cols = 0, drops = [];
+
+      function sizeCanvas() {
+        canvas.width = innerWidth; canvas.height = innerHeight;
+        cols = Math.floor(canvas.width / fontSize);
+        drops = Array.from({ length: cols }, () => Math.random() * -60);
+      }
+      sizeCanvas();
+      addEventListener('resize', sizeCanvas);
+
+      setInterval(() => {
+        ctx.fillStyle = 'rgba(0, 10, 4, 0.09)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#33ff66';
+        ctx.font = fontSize + 'px monospace';
+        for (let i = 0; i < drops.length; i++) {
+          ctx.fillText(glyphs[Math.floor(Math.random() * glyphs.length)], i * fontSize, drops[i] * fontSize);
+          if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+          drops[i] += 0.35;
+        }
+      }, 50);
+    }
+
+    /* ---------- Boot sequence (decorative) ---------- */
+    const bootLines = [
+      '> initiating secure handshake .............. <span class="ok">OK</span>',
+      '> negotiating tunnel ....................... <span class="ok">OK</span>',
+      '> mounting /usr/lore ....................... <span class="ok">OK</span>',
+      '> visitor trace ............................ <span class="ok">UNAUTHENTICATED</span>',
+      '> credentials required — authenticate below'
+    ];
+    const bootEl = document.getElementById('bootLog');
+    if (reduceMotion) {
+      bootEl.innerHTML = bootLines.join('<br>');
+    } else {
+      let i = 0;
+      const bootTimer = setInterval(() => {
+        if (i >= bootLines.length) { clearInterval(bootTimer); return; }
+        bootEl.innerHTML += bootLines[i] + '<br>';
+        i++;
+      }, 190);
+    }
+
+    /* ---------- Sign in / sign up / verification logic ---------- */
+    let isSignUp = false;
+    const PENDING_KEY = 'lorePendingVerifyEmail';
+
+    firebase.initializeApp(LORE_FIREBASE_CONFIG);
+    const loreAuth = firebase.auth();
+    // "Keep logged in": persist the session across browser restarts
+    loreAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
+    // Direct verified users to the continue URL only from our domain
+    function verificationActions() {
+      if (location.hostname.indexOf('linux-edu.web.app') !== -1) {
+        return { url: 'https://linux-edu.web.app/', handleCodeInApp: false };
+      }
+      return undefined;
+    }
+
+    const toggleText = document.getElementById('loginToggleText');
+    const toggleLink = document.getElementById('loginToggleLink');
+    const submitBtn = document.getElementById('loginSubmit');
+    const nameGroup = document.getElementById('nameGroup');
+    const errBox = document.getElementById('loginError');
+    const verifyScreen = document.getElementById('verifyScreen');
+    const verifyMsg = document.getElementById('verifyMsg');
+
+    let transitioningToSite = false;
+
+    function proceedToSite() {
+      if (transitioningToSite) return;
+      transitioningToSite = true;
+      const next = sessionStorage.getItem('loreAuthNext') || '/';
+      sessionStorage.removeItem('loreAuthNext');
+      localStorage.removeItem(PENDING_KEY);
+      location.replace(next);
+    }
+
+    function showFormMode() {
+      verifyScreen.style.display = 'none';
+      document.getElementById('loginForm').style.display = 'block';
+      document.querySelector('.login-toggle').style.display = 'block';
+      verifyMsg.textContent = '';
+      localStorage.removeItem(PENDING_KEY);
+    }
+
+    function showVerifyMode(email) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.querySelector('.login-toggle').style.display = 'none';
+      errBox.style.display = 'none';
+      verifyScreen.style.display = 'block';
+      document.getElementById('verifyEmailSpan').textContent = email;
+      localStorage.setItem(PENDING_KEY, email);
+    }
+
+    function setVerifyMsg(text, isError) {
+      verifyMsg.textContent = text;
+      verifyMsg.style.display = 'block';
+      verifyMsg.classList.toggle('verify-error', !!isError);
+    }
+
+    // Re-pull the user from the server; if they just clicked the emailed
+    // link, their session turns verified and we continue on the spot.
+    async function checkVerificationNow() {
+      const current = loreAuth.currentUser;
+      if (!current) return false;
+      try {
+        await current.reload();
+        await current.getIdToken(true);
+      } catch (e) { /* offline — keep trying later */ }
+      const fresh = loreAuth.currentUser;
+      if (fresh && fresh.emailVerified) {
+        proceedToSite();
+        return true;
+      }
+      return false;
+    }
+
+    loreAuth.onAuthStateChanged(async (user) => {
+      if (transitioningToSite) return;
+
+      if (user) {
+        if (user.emailVerified) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = isSignUp ? '[ REGISTER ]' : '[ AUTHENTICATE ]';
+          proceedToSite();
+          return;
+        }
+        // Session exists but is unverified → verification required screen
+        showVerifyMode(user.email);
+        checkVerificationNow().then((ok) => {
+          if (!ok) submitBtn.disabled = false;
+        });
+        return;
+      }
+
+      // Signed out
+      showFormMode();
+      submitBtn.disabled = false;
+      const remembered = localStorage.getItem(PENDING_KEY);
+      if (remembered) {
+        document.getElementById('loginEmail').value = remembered;
+      }
+    });
+
+    const btnVerifyDone = document.getElementById('btnVerifyDone');
+    const btnVerifyResend = document.getElementById('btnVerifyResend');
+    const btnVerifyDifferent = document.getElementById('btnVerifyDifferent');
+
+    btnVerifyDone.addEventListener('click', async () => {
+      setVerifyMsg('> re-checking verification status...', false);
+      btnVerifyDone.disabled = true;
+      const ok = await checkVerificationNow();
+      btnVerifyDone.disabled = false;
+      if (!ok) setVerifyMsg('[!] still unverified — click the link in your inbox first.', true);
+    });
+
+    btnVerifyResend.addEventListener('click', async () => {
+      const current = loreAuth.currentUser;
+      if (!current) {
+        setVerifyMsg('[!] session gone — sign in again to resend.', true);
+        return;
+      }
+      setVerifyMsg('> dispatching new link...', false);
+      try {
+        await current.sendEmailVerification(verificationActions());
+        setVerifyMsg('link re-dispatched ✓', false);
+      } catch (err) {
+        if (err.code === 'auth/too-many-requests') {
+          setVerifyMsg('[!] rate limited — wait a minute before resending.', true);
+        } else {
+          setVerifyMsg('[!] could not resend (' + err.code + ').', true);
+        }
+      }
+    });
+
+    btnVerifyDifferent.addEventListener('click', async () => {
+      try { await loreAuth.signOut(); } catch (e) { /* central handler resets UI*/ }
+    });
+
+    // If they click the emailed link in another tab and come back here,
+    // check verification automatically on focus.
+    window.addEventListener('focus', () => {
+      if (loreAuth.currentUser && verifyScreen.style.display === 'block') {
+        checkVerificationNow();
+      }
+    });
+
+    function setMode(signUp) {
+      isSignUp = signUp;
+      nameGroup.classList.toggle('hidden-field', !signUp);
+      submitBtn.innerText = signUp ? '[ REGISTER ]' : '[ AUTHENTICATE ]';
+      toggleText.innerText = signUp ? 'already registered? ' : 'no credentials? ';
+      toggleLink.innerText = signUp ? 'sign-in --existing' : 'create-account --new';
+      document.getElementById('loginPassword').autocomplete = signUp ? 'new-password' : 'current-password';
+      errBox.style.display = 'none';
+    }
+
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      setMode(!isSignUp);
+    });
+
+    function showError(html) {
+      errBox.innerHTML = html;
+      errBox.style.display = 'block';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (transitioningToSite) return;
+      errBox.style.display = 'none';
+
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const name = document.getElementById('loginName').value.trim();
+
+      if (!email || password.length < 6) {
+        showError('Credentials incomplete — an email and 6+ character password are required.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = isSignUp ? '[ ENCRYPTING... ]' : '[ AUTHORIZING... ]';
+
+      try {
+        if (isSignUp) {
+          const cred = await loreAuth.createUserWithEmailAndPassword(email, password);
+          try {
+            if (name) await cred.user.updateProfile({ displayName: name });
+          } catch (e) { /* non-fatal */ }
+
+          // Dispatch the verification email immediately
+          let sent = true;
+          try {
+            await cred.user.sendEmailVerification(verificationActions());
+          } catch (sendErr) {
+            sent = false;
+            if (sendErr.code !== 'auth/too-many-requests') {
+              // If sending truly failed, undo the account so they can retry cleanly
+              try { await cred.user.delete(); await loreAuth.signOut(); } catch (e) {}
+              showError('Could not dispatch a verification email (' + sendErr.code + '). Try again.');
+              submitBtn.disabled = false;
+              submitBtn.innerText = '[ REGISTER ]';
+              return;
+            }
+          }
+          if (!sent) {
+            setMode(false);
+            showError('Email was sent recently — check your inbox, or use the resend option after signing in.');
+          }
+          // onAuthStateChanged shows the verification screen (session stays active)
+        } else {
+          await loreAuth.signInWithEmailAndPassword(email, password);
+          // onAuthStateChanged handles both outcomes:
+          //   verified → redirect into the site
+          //   unverified → "wait for verification" screen
+        }
+      } catch (err) {
+        let msg;
+        switch (err.code) {
+          case 'auth/configuration-not-found':
+          case 'auth/operation-not-allowed':
+            msg = '<strong>Email/password sign-in is not enabled yet.</strong><br>Site owner: Firebase Console → Authentication → Sign-in method → Email/Password → Enable.';
+            break;
+          case 'auth/email-already-in-use':
+            msg = 'Credentials already on file — switch to sign-in mode.';
+            break;
+          case 'auth/wrong-password':
+          case 'auth/user-not-found':
+          case 'auth/invalid-credential':
+            msg = 'Invalid credentials. Access denied.';
+            break;
+          case 'auth/weak-password':
+            msg = 'Password too weak — minimum 6 characters.';
+            break;
+          case 'auth/invalid-email':
+            msg = 'Malformed email address.';
+            break;
+          case 'auth/network-request-failed':
+            msg = 'Network link down — retry.';
+            break;
+          default:
+            msg = 'Sign-in failed (' + err.code + '). ' + (err.message || '');
+        }
+        showError(msg);
+        submitBtn.disabled = false;
+        submitBtn.innerText = isSignUp ? '[ REGISTER ]' : '[ AUTHENTICATE ]';
+      }
+    });
+  </script>
+</body>
+</html>

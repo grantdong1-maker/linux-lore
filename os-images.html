@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <title>Popular Linux OS Images (ISOs)</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <a href="index.html" class="back-link">🐧 Linux Lore</a>
+      <button id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="container article-body">
+    <h1>💿 Popular Linux OS Images (ISOs)</h1>
+    <p>Before installing Linux or setting up a dual-boot system, you need to download an ISO image (the installer file) and write it to a USB drive.</p>
+    
+    <h2>Official Downloads</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Distribution</th>
+          <th>Best For</th>
+          <th>Official Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ubuntu</strong></td>
+          <td>Beginners, widest software compatibility</td>
+          <td><a href="https://ubuntu.com/download/desktop" target="_blank">Download Ubuntu</a></td>
+        </tr>
+        <tr>
+          <td><strong>Linux Mint</strong></td>
+          <td>Users transitioning from Windows (familiar layout)</td>
+          <td><a href="https://linuxmint.com/download.php" target="_blank">Download Linux Mint</a></td>
+        </tr>
+        <tr>
+          <td><strong>Fedora</strong></td>
+          <td>Users wanting modern packages & clean GNOME</td>
+          <td><a href="https://fedoraproject.org/workstation/download" target="_blank">Download Fedora</a></td>
+        </tr>
+        <tr>
+          <td><strong>Pop!_OS</strong></td>
+          <td>Gaming, out-of-the-box NVIDIA driver support</td>
+          <td><a href="https://system76.com/pop" target="_blank">Download Pop!_OS</a></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>🛠️ Tools to Create a Bootable USB</h2>
+    <ul>
+      <li><strong>BalenaEtcher:</strong> Cross-platform, very easy to use.</li>
+      <li><strong>Rufus:</strong> Windows only, reliable and highly customizable.</li>
+      <li><strong>Ventoy:</strong> Allows dragging-and-dropping multiple ISOs onto one USB drive.</li>
+    </ul>
+
+    <h2>🔒 Checksum Verification</h2>
+    <p>Verify your ISO download checksums with:</p>
+    <pre><code>sha256sum filename.iso</code></pre>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Hosted on Firebase Hosting • Linux Lore Project</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>

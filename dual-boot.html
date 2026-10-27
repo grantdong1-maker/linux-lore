@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <title>Dual-Booting Linux — Linux Lore</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <a href="index.html" class="back-link">🐧 Linux Lore</a>
+      <button id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="container article-body">
+    <h1>🐧 Dual-Booting Linux: Windows + Linux on One PC</h1>
+    <p>So you've heard about Linux. Maybe your friend keeps talking about Arch. Maybe you've seen people running Ubuntu on ancient laptops. Maybe you just want to find out what all the fuss is about. But there's one problem: <strong>You don't want to get rid of Windows.</strong></p>
+    
+    <p>Good news: you don't have to.</p>
+
+    <h2>What is dual-booting?</h2>
+    <p>Dual-booting means having <strong>two operating systems installed on the same computer</strong>. When you turn your computer on, you can choose which one you want to use:</p>
+    
+    <pre><code>Computer starts ➔ UEFI ➔ Bootloader ➔ Windows OR Linux</code></pre>
+
+    <p>You aren't running both at once. You choose one, and that operating system gets control of the computer. Think of it like having two houses on the same block. They're on the same piece of land, but each has its own stuff inside.</p>
+
+    <p>⚠️ <strong>Before you do anything: Back up anything important.</strong> Installing an operating system usually involves changing partitions on your drive. If you select the wrong partition, you can lose data. Use a computer you own and are allowed to modify.</p>
+
+    <h2>What is actually being changed?</h2>
+    <p>Your computer's SSD or Hard Drive is divided into <strong>partitions</strong>. It usually starts as one giant undivided space:</p>
+
+    <pre><code>[ EFI | Recovery | Windows C: ]</code></pre>
+
+    <p>When you install Linux, you shrink the Windows partition to create unallocated space:</p>
+
+    <pre><code>[ EFI | Recovery | Windows C: | Unallocated space ]</code></pre>
+
+    <p>Linux is then installed into that empty space:</p>
+
+    <pre><code>[ EFI | Recovery | Windows | Linux ]</code></pre>
+
+    <p><strong>The key point:</strong> Linux doesn't need to replace Windows—it sits right alongside it.</p>
+
+    <h2>Step-by-Step Overview</h2>
+    
+    <h3>1. Choose a Linux Distribution</h3>
+    <p>Linux itself is technically the kernel. What people call "Linux" is actually a distribution (or "distro"). Beginner-friendly distros include:</p>
+    <ul>
+      <li><strong>Ubuntu:</strong> Popular, massive community support.</li>
+      <li><strong>Linux Mint:</strong> Perfect for users coming from Windows.</li>
+      <li><strong>Fedora:</strong> Clean, modern desktop environment.</li>
+      <li><strong>Pop!_OS:</strong> Great for gaming and NVIDIA graphics setup.</li>
+    </ul>
+
+    <h3>2. Prepare a Bootable USB Drive</h3>
+    <p>Download the ISO image for your chosen distro and flash it onto a USB drive using tools like <strong>BalenaEtcher</strong> or <strong>Rufus</strong>.</p>
+
+    <h3>3. Boot from the USB Drive</h3>
+    <p>Plug the USB into your computer and restart. Boot into your motherboard's boot menu (usually F12, F11, Esc, or F9) and choose the USB drive.</p>
+
+    <h3>4. Try Before Installing</h3>
+    <p>Most desktop Linux installers boot into a live environment first. Test your Wi-Fi, keyboard, mouse, and audio before touching your hard drive.</p>
+
+    <h3>5. Run the Installer</h3>
+    <p>Select <strong>"Install Linux alongside Windows"</strong> during setup so the installer automatically sizes and formats the drive safely for you.</p>
+
+    <h3>6. Restart and Pick Your OS</h3>
+    <p>After installation, restarting will bring up a menu where you select whether to load Windows or Linux.</p>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Hosted on Firebase Hosting • Linux Lore Project</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>

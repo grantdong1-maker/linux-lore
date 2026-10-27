@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='88'%3E🐧%3C/text%3E%3C/svg%3E">
+  <title>What Is a Zombie Process? — Linux Lore</title>
+  <link rel="stylesheet" href="styles.css?v=5">
+</head>
+<body>
+
+  <header>
+    <div class="container header-content">
+      <a href="index.html" class="back-link">🐧 Linux Lore</a>
+      <button id="theme-toggle">🌙 Dark Mode</button>
+    </div>
+  </header>
+
+  <main class="container article-body">
+    <h1>🧟 What Is a Zombie Process?</h1>
+
+    <p>You run a program.</p>
+    <p>It finishes.</p>
+    <p>So... it's gone, right?</p>
+    <p><strong>Not quite.</strong></p>
+
+    <p>Sometimes Linux keeps a tiny piece of the process around even after it has finished running. It isn't running, using CPU, or plotting anything. It's a <strong>zombie process</strong>.</p>
+
+    <hr>
+
+    <h2>🧠 The short answer</h2>
+    <p>A zombie process is a process that has <strong>finished executing but still has an entry in the process table</strong> because its parent process hasn't collected its exit status yet.</p>
+
+    <pre><code>Parent ➔ Child (running) ➔ Child (finished) ➔ Parent delays wait() ➔ Zombie 💀</code></pre>
+
+    <hr>
+
+    <h2>👶 Why do processes have parents?</h2>
+    <p>When a Linux process creates another process, the new process has a <strong>parent process</strong>.</p>
+    <p>Check process relationships with:</p>
+    <pre><code>ps -ef</code></pre>
+    <ul>
+      <li><strong>PID:</strong> Process ID (Unique ID for the process).</li>
+      <li><strong>PPID:</strong> Parent Process ID (PID of the parent).</li>
+    </ul>
+
+    <hr>
+
+    <h2>💀 How does a process become a zombie?</h2>
+    <p>When a child process exits, the kernel retains its exit code (e.g., <code>Exit status: 0</code>) until the parent collects it.</p>
+
+    <h2>🧹 <code>wait()</code> cleans it up</h2>
+    <p>The parent calls a system call like <code>wait()</code>, receives the exit status, and the zombie entry disappears.</p>
+
+    <hr>
+
+    <h2>🟢 What does exit code <code>0</code> mean?</h2>
+    <p>Check the previous command exit status with:</p>
+    <pre><code>echo $?</code></pre>
+    <p>An exit status of <code>0</code> means success. Non-zero values indicate errors.</p>
+
+    <hr>
+
+    <h2>🔍 Finding zombies</h2>
+    <p>Run <code>ps aux</code> and look for status <code>Z</code> or <code>&lt;defunct&gt;</code>:</p>
+    <pre><code>USER   PID   STAT   COMMAND
+user   420   Z      [program] <defunct></code></pre>
+
+    <hr>
+
+    <h2>🧠 Zombies don't use CPU</h2>
+    <p>Zombies consume zero CPU cycles and almost no memory. They only occupy an entry slot in the process table.</p>
+
+    <hr>
+
+    <h2>👻 Zombie vs Orphan</h2>
+    <ul>
+      <li><strong>Zombie:</strong> Dead child + living parent who hasn't waited yet.</li>
+      <li><strong>Orphan:</strong> Living child + dead parent (re-parented to PID 1).</li>
+    </ul>
+
+    <hr>
+
+    <h2>👑 PID 1 enters the story</h2>
+    <p>PID 1 (usually <code>systemd</code>) automatically adopts orphan processes and cleans them up when they terminate.</p>
+
+    <hr>
+
+    <h2>🌳 Linux processes form a tree</h2>
+    <p>Inspect the system process hierarchy using:</p>
+    <pre><code>pstree</code></pre>
+
+    <hr>
+
+    <h2>🚨 Can you kill a zombie?</h2>
+    <p><strong>No.</strong> You cannot kill a zombie with <code>kill -9</code> because it is already dead. To remove zombies, you must get the parent process to call <code>wait()</code> or terminate the parent process.</p>
+
+    <hr>
+
+    <h2>📝 TL;DR</h2>
+    <p>A zombie process is simply a finished task whose exit paperwork hasn't been collected by its parent process yet.</p>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>Hosted on Firebase Hosting • Linux Lore Project</p>
+    </div>
+  </footer>
+
+  <script src="script.js?v=7"></script>
+</body>
+</html>
